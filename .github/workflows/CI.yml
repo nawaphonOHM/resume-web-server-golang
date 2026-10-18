@@ -1,0 +1,53 @@
+name: CI
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pull Code
+        uses: actions/checkout@v7
+
+      - name: Setup go and dependencies
+        uses: actions/setup-go@v7
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pull Code
+        uses: actions/checkout@v7
+
+      - name: Setup go and dependencies
+        uses: actions/setup-go@v7
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: true
+
+      - name: Verify module dependencies
+        run: |
+          go mod verify
+          git diff --exit-code go.mod go.sum || (echo "go.mod/go.sum dirty" && exit 1)
+
+      - name: Run unit tests
+        run: go test -race -v ./...
+
+      - name: Verify package compilation
+        run: go build -v ./...
+

@@ -1,0 +1,63 @@
+steps:
+  # Step 1: Build the Docker image and push to the registry
+  - name: 'docker.io/buildpacksio/pack'
+    id: 'Build Image'
+    args:
+      - 'build'
+      - '$_LOCATION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$_SHORT_SHA'
+      - '--builder=$_BUILDER'
+      - '--network=cloudbuild'
+      - '--publish'
+
+  # Step 2: Deploy the container image to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy to Cloud Run'
+    args:
+      - 'run'
+      - 'deploy'
+      - '$_SERVICE_NAME'
+      - '--image=$_LOCATION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$_SHORT_SHA'
+      - '--region=$_LOCATION'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--service-account=$_SERVICE_ACCOUNT'
+      - '--ingress=internal-and-cloud-load-balancing'
+      - '--network=default'
+      - '--subnet=default'
+      - '--vpc-egress=all-traffic'
+      - '--startup-probe=httpGet.port=8080,httpGet.path=/health,timeoutSeconds=1,periodSeconds=10,failureThreshold=3'
+      - '--set-secrets=OHM9996_SERVER_API_GROUP=OHM9996_SERVER_API_GROUP:1'
+      - '--set-secrets=OHM9996_MONGODB_AUTH_SOURCE=OHM9996_MONGODB_AUTH_SOURCE:1'
+      - '--set-secrets=OHM9996_MONGODB_DATABASE=OHM9996_MONGODB_DATABASE:1'
+      - '--set-secrets=OHM9996_MONGODB_HOST=OHM9996_MONGODB_HOST:1'
+      - '--set-secrets=OHM9996_MONGODB_MAX_CONN_IDLE_TIME=OHM9996_MONGODB_MAX_CONN_IDLE_TIME:1'
+      - '--set-secrets=OHM9996_MONGODB_PASSWORD=OHM9996_MONGODB_PASSWORD:1'
+      - '--set-secrets=OHM9996_MONGODB_PORT=OHM9996_MONGODB_PORT:1'
+      - '--set-secrets=OHM9996_MONGODB_SOCKET_TIMEOUT=OHM9996_MONGODB_SOCKET_TIMEOUT:1'
+      - '--set-secrets=OHM9996_MONGODB_USERNAME=OHM9996_MONGODB_USERNAME:1'
+      - '--set-secrets=OHM9996_OTEL_ENABLED=OHM9996_OTEL_ENABLED:1'
+      - '--set-secrets=OHM9996_SERVER_HOST=OHM9996_SERVER_HOST:2'
+      - '--set-secrets=OHM9996_SERVER_PORT=OHM9996_SERVER_PORT:1'
+      - '--set-secrets=OHM9996_LOGGING_FORMAT=OHM9996_LOGGING_FORMAT:1'
+      - '--set-secrets=OHM9996_STORAGE_BUCKET=OHM9996_STORAGE_BUCKET:1'
+      - '--set-secrets=OHM9996_STORAGE_ENDPOINT=OHM9996_STORAGE_ENDPOINT:1'
+      - '--set-secrets=OHM9996_STORAGE_REGION=OHM9996_STORAGE_REGION:1'
+      - '--set-secrets=OHM9996_STORAGE_ACCESS_KEY_ID=OHM9996_STORAGE_ACCESS_KEY_ID:1'
+      - '--set-secrets=OHM9996_STORAGE_SECRET_ACCESS_KEY=OHM9996_STORAGE_SECRET_ACCESS_KEY:1'
+      - '--set-secrets=OHM9996_STORAGE_USE_PATH_STYLE=OHM9996_STORAGE_USE_PATH_STYLE:1'
+
+# Specify your custom service account
+serviceAccount: 'projects/$PROJECT_ID/serviceAccounts/$_SERVICE_ACCOUNT'
+
+substitutions:
+  _LOCATION: _LOCATION_
+  _REPO_NAME: _REPO_NAME_
+  _IMAGE_NAME: _IMAGE_NAME_
+  _SHORT_SHA: _SHORT_SHA_
+  _BUILDER: _BUILDER_
+  _SERVICE_NAME: _SERVICE_NAME_
+  _SERVICE_ACCOUNT: _SERVICE_ACCOUNT_
+
+
+options:
+  logging: CLOUD_LOGGING_ONLY
