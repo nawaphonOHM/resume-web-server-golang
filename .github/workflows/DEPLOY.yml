@@ -58,4 +58,5 @@ jobs:
           REGION: ${{ vars.LOCATION }}
           BUCKET_NAME: ${{ secrets.STAGING_BUCKET_NAME }}
         run: |
-          gcloud builds submit . --gcs-source-staging-dir gs://$BUCKET_NAME/source --service-account projects/$PROJECT_ID/serviceAccounts/$SERVICE_ACCOUNT --region $REGION --project $PROJECT_ID
+          gcloud builds submit . --gcs-source-staging-dir gs://$BUCKET_NAME/source \
+          --service-account projects/$PROJECT_ID/serviceAccounts/$SERVICE_ACCOUNT --region $REGION --project $PROJECT_ID
