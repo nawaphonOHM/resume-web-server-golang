@@ -49,10 +49,10 @@ func TestServeFileUsesParamAndContext(t *testing.T) {
 	svc := &nameCapturingService{}
 	h := NewFileHandler(&mockFileService{getAssetFunc: svc.getAsset})
 
-	resp := h.ServeFile(&mockRestContext{params: map[string]string{"fileName": "assets", "rest": "/app.js"}})
+	resp := h.ServeFile(&mockRestContext{params: map[string]string{"fileName": "app.js"}})
 
 	assertEqual(t, http.StatusOK, resp.StatusCode())
-	assertEqual(t, "assets/app.js", svc.name)
+	assertEqual(t, "app.js", svc.name)
 }
 
 func TestExtractRequestContextFallsBack(t *testing.T) {

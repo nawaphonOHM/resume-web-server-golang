@@ -36,12 +36,12 @@ func isHandlerUnconfigured(h *FileHandler) bool {
 	return h.fileService == nil
 }
 
-// resolveFileNameParam joins the fileName and nested rest parameters into the requested path.
+// resolveFileNameParam extracts the fileName parameter from the request context.
 func resolveFileNameParam(c rest.Context) string {
 	if c == nil {
 		return ""
 	}
-	return c.Param("fileName") + c.Param("rest")
+	return c.Param("fileName")
 }
 
 // mapServiceError translates domain service errors into standardized RFC 9457 responses.
@@ -80,7 +80,7 @@ func (h *FileHandler) ServeRoot(c rest.Context) rest.Response {
 	return buildAssetResponse(asset)
 }
 
-// ServeFile handles GET /:fileName and nested paths by resolving the asset or falling back to index.html.
+// ServeFile handles GET /:fileName by resolving the asset or falling back to index.html.
 func (h *FileHandler) ServeFile(c rest.Context) rest.Response {
 	if isHandlerUnconfigured(h) {
 		return rest.InternalServerError("SERVICE_UNAVAILABLE", "file service not configured")

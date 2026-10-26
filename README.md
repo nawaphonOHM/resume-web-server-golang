@@ -10,7 +10,6 @@ High-performance static single page application (SPA) web server in Go with dire
 |---|---|---|
 | `GET` | `/` | Resolves and streams the entrypoint `index.html` asset directly from cloud storage. |
 | `GET` | `/{fileName}` | Resolves `{fileName}` from MongoDB; if found, streams object from storage; if not found, transparently falls back to `index.html` (SPA routing). |
-| `GET` | `/{fileName}/*rest` | Resolves nested asset paths (e.g. `/assets/app.js`, `/chunks/vendor.js`) with the same SPA fallback behavior. |
 | `GET` | `/health` | Framework readiness / liveness probe returning HTTP 200. |
 | `GET` | `/ready` | Framework readiness probe returning HTTP 200. |
 
@@ -33,7 +32,7 @@ Documents must follow this schema:
 
 ### Schema Rules & Normalization
 
-- **`fileName`** (string, required): Lookup key for static assets. Paths are stored without leading slashes (e.g., `index.html`, `assets/main.js`). HTTP requests with leading slashes (such as `/index.html` or `///app.js`) are stripped and normalized prior to querying MongoDB.
+- **`fileName`** (string, required): Lookup key for static assets. Paths are stored without leading slashes (e.g., `index.html`, `app.js`). HTTP requests with leading slashes (such as `/index.html` or `///app.js`) are stripped and normalized prior to querying MongoDB.
 - **`location`** (string, required): Cloud object storage URI or object key indicating the location of the static file. Supported formats:
   - **Cloud storage URIs (`gs://` or `s3://`)**:
     - `gs://bucket-name/path/to/file.ext` -> target bucket `bucket-name`, object key `path/to/file.ext`.
@@ -43,7 +42,7 @@ Documents must follow this schema:
   - **Non-URI relative or absolute object keys**:
     - `index.html` or `/index.html` -> target bucket configured default bucket (`OHM9996_STORAGE_BUCKET`), object key `index.html`.
     - `assets/main.js` or `/assets/main.js` -> target bucket configured default bucket (`OHM9996_STORAGE_BUCKET`), object key `assets/main.js`.
-    - Non-URI paths always resolve strictly as object keys in the default bucket (leading slashes are stripped) and are never split into bucket and key segments.
+    - Non-URI paths always resolve strictly as object keys in the default bucket (leading slashes are stripped) and are never split into bucket and key segments. Note that nested object keys in cloud storage are supported via the metadata `location`, while the HTTP route itself serves single-depth requests (`GET /{fileName}`).
 - **`hashValueFile`** (string, required): Content hash value for validation and cache identification.
 
 ---
@@ -167,14 +166,14 @@ The `/health` endpoint responds with HTTP 200 immediately once the REST listener
 This repository uses upstream `github.com/nawaphonOHM/whatever/v3` (pinned at `v3.7.0`).
 
 ### Root SPA Routing (`rest.APIGroupRaw`)
-The static SPA routes (`/`, `/:fileName`, `/:fileName/*rest`) are registered with `Group: rest.APIGroupRaw`, allowing endpoints to mount directly at the root URL path without `/api` or version prefixes.
+The static SPA routes (`/`, `/:fileName`) are registered with `Group: rest.APIGroupRaw`, allowing endpoints to mount directly at the root URL path without `/api` or version prefixes.
 
 ### Dependency Boundary
 To maintain a strict dependency boundary, `github.com/gin-gonic/gin` and `go.mongodb.org/mongo-driver/v2` are permitted only as transitive dependencies via `github.com/nawaphonOHM/whatever/v3`. They are strictly banned from direct imports across the repository by `depguard` lint rules, and are excluded from direct `require` entries in the root `go.mod`.
 
 ### Routing Constraints & Shadowing
 
-- **Gin Radix Tree Wildcards**: Gin's tree-based router disallows a single root catch-all wildcard (`/*fileName`) because it conflicts with framework static probe routes (`/health` and `/ready`). The handler registers `/`, `/:fileName`, and `/:fileName/*rest` to serve single-level and nested asset paths without wildcard collisions.
+- **Gin Radix Tree Wildcards**: Gin's tree-based router disallows a single root catch-all wildcard (`/*fileName`) because it conflicts with framework static probe routes (`/health` and `/ready`). The handler registers `/` and `/:fileName` to serve single-level asset paths without wildcard collisions.
 - **Probe Route Shadowing**: Static assets named literally `health` or `ready` are shadowed by framework health check endpoints.
 
 ---

@@ -45,19 +45,26 @@ func (r *recordingService) service() *mockFileService {
 	}
 }
 
-func TestServerServesFileAndNestedPaths(t *testing.T) {
+func TestServerServesSingleSegmentFile(t *testing.T) {
 	rec := &recordingService{names: make(chan string, nameBuffer)}
 	base := startServer(t, rec.service())
 
-	for _, path := range []string{"/app.js", "/assets/chunks/app.js"} {
-		resp, body := fetch(t, base+path)
-		assertEqual(t, http.StatusOK, resp.StatusCode)
-		assertEqual(t, testType, resp.Header.Get(hdrContent))
-		assertEqual(t, testETag, resp.Header.Get(headerETag))
-		assertEqual(t, testBody, body)
-		assertEqual(t, strings.TrimPrefix(path, "/"), <-rec.names)
-		rec.spyBody.waitClosed(t)
-	}
+	resp, body := fetch(t, base+"/app.js")
+	assertEqual(t, http.StatusOK, resp.StatusCode)
+	assertEqual(t, testType, resp.Header.Get(hdrContent))
+	assertEqual(t, testETag, resp.Header.Get(headerETag))
+	assertEqual(t, testBody, body)
+	assertEqual(t, "app.js", <-rec.names)
+	rec.spyBody.waitClosed(t)
+}
+
+func TestServerNestedPathDoesNotHitAssetHandler(t *testing.T) {
+	rec := &recordingService{names: make(chan string, nameBuffer)}
+	base := startServer(t, rec.service())
+
+	resp, _ := fetch(t, base+"/assets/chunks/app.js")
+	assertEqual(t, http.StatusNotFound, resp.StatusCode)
+	assertEqual(t, 0, len(rec.names))
 }
 
 func TestServerServesFileWithoutOptionalMetadata(t *testing.T) {

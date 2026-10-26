@@ -7,7 +7,7 @@ import (
 	"github.com/nawaphonOHM/whatever/v3/pkg/rest"
 )
 
-const expectedRoutes = 3
+const expectedRoutes = 2
 
 func TestNewAPIRegistrationRawGroup(t *testing.T) {
 	reg := NewAPIRegistration(NewFileHandler(&mockFileService{}))
@@ -16,7 +16,6 @@ func TestNewAPIRegistrationRawGroup(t *testing.T) {
 	assertEqual(t, expectedRoutes, len(reg.Apis))
 	assertEqual(t, RouteRootPath, reg.Apis[0].Path)
 	assertEqual(t, RouteFilePath, reg.Apis[1].Path)
-	assertEqual(t, RouteNestedFilePath, reg.Apis[2].Path)
 	for _, api := range reg.Apis {
 		assertEqual(t, rest.GET, api.Method)
 	}
