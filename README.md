@@ -13,6 +13,8 @@ High-performance static single page application (SPA) web server in Go with dire
 | `GET` | `/health` | Framework readiness / liveness probe returning HTTP 200. |
 | `GET` | `/ready` | Framework readiness probe returning HTTP 200. |
 
+> **Routing limitation:** Only single-segment request paths are routed. Multi-segment HTTP paths such as `/assets/app.js` or `/projects/42` return HTTP 404 and do **not** fall back to `index.html`. This applies to HTTP routing only; the MongoDB `location` metadata may still reference nested object keys in cloud storage.
+
 ---
 
 ## MongoDB Collection Schema
