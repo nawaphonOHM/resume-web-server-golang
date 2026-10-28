@@ -45,18 +45,5 @@ steps:
       - '--set-secrets=OHM9996_STORAGE_SECRET_ACCESS_KEY=OHM9996_STORAGE_SECRET_ACCESS_KEY:1'
       - '--set-secrets=OHM9996_STORAGE_USE_PATH_STYLE=OHM9996_STORAGE_USE_PATH_STYLE:1'
 
-# Specify your custom service account
-serviceAccount: 'projects/$PROJECT_ID/serviceAccounts/$_SERVICE_ACCOUNT'
-
-substitutions:
-  _LOCATION: _LOCATION_
-  _REPO_NAME: _REPO_NAME_
-  _IMAGE_NAME: _IMAGE_NAME_
-  _SHORT_SHA: _SHORT_SHA_
-  _BUILDER: _BUILDER_
-  _SERVICE_NAME: _SERVICE_NAME_
-  _SERVICE_ACCOUNT: _SERVICE_ACCOUNT_
-
-
 options:
   logging: CLOUD_LOGGING_ONLY
