@@ -19,7 +19,6 @@ steps:
       - '--image=$_LOCATION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_IMAGE_NAME:$_SHORT_SHA'
       - '--region=$_LOCATION'
       - '--platform=managed'
-      - '--allow-unauthenticated'
       - '--service-account=$_SERVICE_ACCOUNT'
       - '--ingress=internal-and-cloud-load-balancing'
       - '--network=default'
