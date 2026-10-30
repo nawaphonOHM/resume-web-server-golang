@@ -7,9 +7,6 @@ permissions:
   id-token: write # Required for requesting the JWT/OIDC token
   contents: read  # Required for actions/checkout
 
-env:
-  SERVICE_ACCOUNT: ${{ secrets.SERVICE_ACCOUNT }}
-
 jobs:
   deploy:
     name: Deploy
