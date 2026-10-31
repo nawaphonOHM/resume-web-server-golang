@@ -2,7 +2,7 @@ module github.com/nawaphonOHM/resume-web-server-golang
 
 go 1.27.2
 
-require github.com/nawaphonOHM/whatever/v3 v3.10.0
+require github.com/nawaphonOHM/whatever/v3 v3.10.1
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.3 // indirect
