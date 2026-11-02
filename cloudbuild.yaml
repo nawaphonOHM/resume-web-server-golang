@@ -24,6 +24,7 @@ steps:
       - '--network=default'
       - '--subnet=default'
       - '--vpc-egress=all-traffic'
+      - '--allow-unauthenticated'
       - '--startup-probe=httpGet.port=8080,httpGet.path=/health,timeoutSeconds=1,periodSeconds=10,failureThreshold=3'
       - '--set-secrets=OHM9996_MONGODB_AUTH_SOURCE=SINGLE_PAGE_APPLICATION_AUTH_SOURCE:1'
       - '--set-secrets=OHM9996_MONGODB_DATABASE=SINGLE_PAGE_APPLICATION_NOSQL_DATABASE_NAME:1'
