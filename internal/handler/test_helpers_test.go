@@ -18,7 +18,7 @@ const (
 	testType    = "application/javascript"
 	testETag    = `"abc123"`
 	testLength  = int64(len(testBody))
-	headerType  = "Content-Type"
+
 	headerLen   = "Content-Length"
 	headerETag  = "ETag"
 	headerMod   = "Last-Modified"

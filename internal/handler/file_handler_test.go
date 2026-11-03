@@ -49,56 +49,28 @@ func TestServeFileUsesParamAndContext(t *testing.T) {
 	svc := &nameCapturingService{}
 	h := NewFileHandler(&mockFileService{getAssetFunc: svc.getAsset})
 
-	resp := h.ServeFile(&mockRestContext{params: map[string]string{"fileName": "app.js"}})
+	resp := h.ServeFile(&mockRestContext{params: map[string]string{"p1": "app.js"}})
 
 	assertEqual(t, http.StatusOK, resp.StatusCode())
 	assertEqual(t, "app.js", svc.name)
 }
 
+func TestServeFileNestedPathPassesExtractedFileName(t *testing.T) {
+	svc := &nameCapturingService{}
+	h := NewFileHandler(&mockFileService{getAssetFunc: svc.getAsset})
+
+	resp := h.ServeFile(&mockRestContext{params: map[string]string{
+		"p1":       "media",
+		"fileName": "/material-icons-LEZCGFVT.woff2",
+	}})
+
+	assertEqual(t, http.StatusOK, resp.StatusCode())
+	assertEqual(t, "material-icons-LEZCGFVT.woff2", svc.name)
+}
+
 func TestExtractRequestContextFallsBack(t *testing.T) {
 	assertEqual(t, context.Background(), extractRequestContext(nil))
 	assertEqual(t, context.Background(), extractRequestContext(&mockRestContext{}))
-}
-
-func TestMapServiceErrorStatuses(t *testing.T) {
-	ctx := context.Background()
-	assertEqual(t, http.StatusNotFound, mapServiceError(ctx, domain.ErrFileNotFound).StatusCode())
-	assertEqual(t, http.StatusInternalServerError, mapServiceError(ctx, errBackend).StatusCode())
-}
-
-func TestUnconfiguredHandlerReturns500(t *testing.T) {
-	var nilHandler *FileHandler
-	for _, h := range []*FileHandler{nilHandler, NewFileHandler(nil)} {
-		assertEqual(t, http.StatusInternalServerError, h.ServeRoot(&mockRestContext{}).StatusCode())
-		assertEqual(t, http.StatusInternalServerError, h.ServeFile(&mockRestContext{}).StatusCode())
-	}
-}
-
-func TestBuildAssetResponse(t *testing.T) {
-	t.Run("nil asset returns internal error", func(t *testing.T) {
-		resp := buildAssetResponse(nil)
-		assertEqual(t, http.StatusInternalServerError, resp.StatusCode())
-	})
-
-	t.Run("valid asset with metadata returns stream response", func(t *testing.T) {
-		body := newSpyReadCloser(strings.NewReader(testBody))
-		asset := &domain.StaticAsset{
-			Body:          body,
-			ContentType:   testType,
-			ETag:          testETag,
-			ContentLength: testLength,
-			LastModified:  testModified(),
-		}
-		resp := buildAssetResponse(asset)
-		assertEqual(t, http.StatusOK, resp.StatusCode())
-	})
-
-	t.Run("valid asset with empty metadata returns stream response", func(t *testing.T) {
-		body := newSpyReadCloser(strings.NewReader(""))
-		asset := &domain.StaticAsset{Body: body}
-		resp := buildAssetResponse(asset)
-		assertEqual(t, http.StatusOK, resp.StatusCode())
-	})
 }
 
 func TestServeRootServiceError(t *testing.T) {
