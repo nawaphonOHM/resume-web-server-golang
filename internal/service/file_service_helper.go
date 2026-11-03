@@ -16,18 +16,22 @@ func (s *FileStorageService) resolveAsset(
 	ctx context.Context,
 	cleanName string,
 ) (*domain.StaticAsset, error) {
+	logQueryMetadata(ctx, cleanName)
 	doc, err := s.repo.FindFile(ctx, cleanName)
 	if err != nil {
-		return s.handleLookupError(ctx, err)
+		return s.handleLookupError(ctx, cleanName, err)
 	}
+	logMetadataFound(ctx, cleanName, doc.Location)
 	return s.fetchObject(ctx, doc.Location)
 }
 
 func (s *FileStorageService) handleLookupError(
 	ctx context.Context,
+	cleanName string,
 	err error,
 ) (*domain.StaticAsset, error) {
 	if errors.Is(err, domain.ErrFileNotFound) {
+		logSPAFallback(ctx, cleanName, s.indexFile)
 		return s.GetIndexAsset(ctx)
 	}
 	return nil, err
@@ -41,6 +45,14 @@ func (s *FileStorageService) fetchObject(
 	if err != nil {
 		return nil, err
 	}
+	return s.downloadObject(ctx, bucket, key)
+}
+
+func (s *FileStorageService) downloadObject(
+	ctx context.Context,
+	bucket, key string,
+) (*domain.StaticAsset, error) {
+	logFetchObject(ctx, bucket, key)
 	out, err := s.storage.GetObject(ctx, storage.GetObjectInput{
 		Bucket: bucket,
 		Key:    key,
@@ -48,6 +60,7 @@ func (s *FileStorageService) fetchObject(
 	if err != nil {
 		return nil, mapStorageError(err, key)
 	}
+	logObjectRetrieved(ctx, bucket, key, out)
 	return toStaticAsset(out), nil
 }
 

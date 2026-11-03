@@ -6,12 +6,12 @@ import (
 )
 
 func parseURILocation(loc, defaultBucket string) (bucket, key string, err error) {
-	idx := strings.Index(loc, schemeDelimiter)
-	scheme := strings.ToLower(loc[:idx])
+	before, after, _ := strings.Cut(loc, schemeDelimiter)
+	scheme := strings.ToLower(before)
 	if !isSupportedScheme(scheme) {
 		return "", "", ErrInvalidLocation
 	}
-	rawTarget := loc[idx+schemeOffsetBytes:]
+	rawTarget := after
 	return parseURITarget(rawTarget, defaultBucket)
 }
 
@@ -38,12 +38,12 @@ func parseURIRootKey(rawTarget, defaultBucket string) (bucket, key string, err e
 }
 
 func parseURIBucketAndKey(rawTarget, defaultBucket string) (bucket, key string, err error) {
-	slashIdx := strings.Index(rawTarget, slashSeparator)
-	if slashIdx == -1 {
+	before, after, ok := strings.Cut(rawTarget, slashSeparator)
+	if !ok {
 		return "", "", ErrInvalidLocation
 	}
-	b := rawTarget[:slashIdx]
-	k := strings.TrimLeft(rawTarget[slashIdx+1:], slashSeparator)
+	b := before
+	k := strings.TrimLeft(after, slashSeparator)
 	return validateURIBucketAndKey(b, k, defaultBucket)
 }
 
