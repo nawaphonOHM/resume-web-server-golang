@@ -9,11 +9,9 @@ High-performance static single page application (SPA) web server in Go with dire
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | Resolves and streams the entrypoint `index.html` asset directly from cloud storage. |
-| `GET` | `/{fileName}` | Resolves `{fileName}` from MongoDB; if found, streams object from storage; if not found, transparently falls back to `index.html` (SPA routing). |
+| `GET` | `/{fileName}` / `/{path...}` | Extracts base filename (e.g. `/media/font.woff2` -> `font.woff2`) and resolves from MongoDB; if found, streams object from storage; if not found or trailing slash, transparently falls back to `index.html` (SPA routing). |
 | `GET` | `/health` | Framework readiness / liveness probe returning HTTP 200. |
 | `GET` | `/ready` | Framework readiness probe returning HTTP 200. |
-
-> **Routing limitation:** Only single-segment request paths are routed. Multi-segment HTTP paths such as `/assets/app.js` or `/projects/42` return HTTP 404 and do **not** fall back to `index.html`. This applies to HTTP routing only; the MongoDB `location` metadata may still reference nested object keys in cloud storage.
 
 ---
 
@@ -44,7 +42,7 @@ Documents must follow this schema:
   - **Non-URI relative or absolute object keys**:
     - `index.html` or `/index.html` -> target bucket configured default bucket (`OHM9996_STORAGE_BUCKET`), object key `index.html`.
     - `assets/main.js` or `/assets/main.js` -> target bucket configured default bucket (`OHM9996_STORAGE_BUCKET`), object key `assets/main.js`.
-    - Non-URI paths always resolve strictly as object keys in the default bucket (leading slashes are stripped) and are never split into bucket and key segments. Note that nested object keys in cloud storage are supported via the metadata `location`, while the HTTP route itself serves single-depth requests (`GET /{fileName}`).
+    - Non-URI paths always resolve strictly as object keys in the default bucket (leading slashes are stripped) and are never split into bucket and key segments. Note that nested object keys in cloud storage are supported both via metadata `location` and via nested HTTP asset routes (e.g., `GET /media/font.woff2`).
 - **`hashValueFile`** (string, required): Content hash value for validation and cache identification.
 
 ---
@@ -168,15 +166,17 @@ The `/health` endpoint responds with HTTP 200 immediately once the REST listener
 This repository uses upstream `github.com/nawaphonOHM/whatever/v3` (pinned at `v3.7.0`).
 
 ### Root SPA Routing (`rest.APIGroupRaw`)
-The static SPA routes (`/`, `/:fileName`) are registered with `Group: rest.APIGroupRaw`, allowing endpoints to mount directly at the root URL path without `/api` or version prefixes.
+The static SPA routes (`/`, `/:p1`, `/:p1/*fileName`) are registered with `Group: rest.APIGroupRaw`, allowing endpoints to mount directly at the root URL path without `/api` or version prefixes.
 
 ### Dependency Boundary
 To maintain a strict dependency boundary, `github.com/gin-gonic/gin` and `go.mongodb.org/mongo-driver/v2` are permitted only as transitive dependencies via `github.com/nawaphonOHM/whatever/v3`. They are strictly banned from direct imports across the repository by `depguard` lint rules, and are excluded from direct `require` entries in the root `go.mod`.
 
-### Routing Constraints & Shadowing
+### Routing Scheme & Radix Tree Wildcards
 
-- **Gin Radix Tree Wildcards**: Gin's tree-based router disallows a single root catch-all wildcard (`/*fileName`) because it conflicts with framework static probe routes (`/health` and `/ready`). The handler registers `/` and `/:fileName` to serve single-level asset paths without wildcard collisions.
-- **Probe Route Shadowing**: Static assets named literally `health` or `ready` are shadowed by framework health check endpoints.
+- **Dual Route Registration (`/:p1` + `/:p1/*fileName`)**: Framework validation (`internal/rest/server/validate_reserved.go`) rejects root catch-all routes starting with `/*` to protect framework health probes (`/health`, `/ready`). Registering both `/:p1` (for single-segment paths like `/app.js`) and `/:p1/*fileName` (for multi-segment nested paths like `/media/material-icons-LEZCGFVT.woff2`) uses identical wildcard parameter naming `p1` at root depth, enabling full multi-segment routing under Gin's radix tree without wildcard collisions.
+- **Probe Route Precedence & Subpaths**: Root probes (`/health`, `/ready`) are intercepted directly by framework probe handlers and return HTTP 200. Probe subpaths (such as `/health/x` or `/ready/x`) route to the SPA handler and fall back to `index.html`.
+- **Base Filename Extraction & Trailing Slash Fallback**: The handler normalizes incoming path parameters and extracts base filenames. Paths ending with a trailing slash (e.g. `/media/`, `/app.js/`) or evaluating to directory/relative roots cleanly evaluate to an empty filename and fall back to `index.html` for client-side SPA routing.
+- **Probe Route Shadowing**: Static assets named literally `health` or `ready` at root depth are shadowed by framework health check endpoints.
 
 ---
 
