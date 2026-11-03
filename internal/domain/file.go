@@ -5,13 +5,14 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/nawaphonOHM/whatever/v3/pkg/storage"
 )
 
-// Sentinel errors for domain operations.
+// ErrFileNotFound Sentinel errors for domain operations.
 var (
 	ErrFileNotFound = errors.New("file not found")
 )
@@ -21,6 +22,33 @@ var (
 func CleanFileName(fileName string) string {
 	trimmed := strings.TrimSpace(fileName)
 	return strings.TrimLeft(trimmed, "/")
+}
+
+// ExtractFileName extracts and normalizes the base file name from a path parameter.
+// For example, "/media/material-icons-LEZCGFVT.woff2" becomes "material-icons-LEZCGFVT.woff2",
+// and "/static/css/chunks/theme.css" becomes "theme.css".
+// Trailing slash directory paths (e.g. "/media/"), whitespace-only segments, and
+// terminal traversal tokens (".", "..", "/") safely evaluate to an empty string for SPA fallback.
+func ExtractFileName(rawPath string) string {
+	trimmed := strings.TrimSpace(rawPath)
+	if isInvalidPath(trimmed) {
+		return ""
+	}
+	base := strings.TrimSpace(path.Base(path.Clean(trimmed)))
+	return sanitizeBase(base)
+}
+
+func isInvalidPath(p string) bool {
+	return p == "" || strings.HasSuffix(p, "/")
+}
+
+func sanitizeBase(base string) string {
+	switch base {
+	case "", ".", "..", "/":
+		return ""
+	default:
+		return base
+	}
 }
 
 // SPADocument represents the metadata document stored in MongoDB.

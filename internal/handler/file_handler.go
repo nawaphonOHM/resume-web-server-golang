@@ -12,10 +12,12 @@ import (
 )
 
 const (
-	codeFileNotFound  = "FILE_NOT_FOUND"
-	codeInternalError = "INTERNAL_SERVER_ERROR"
-	detailNotFound    = "the requested file was not found"
-	detailInternal    = "the server failed to serve the requested file"
+	codeFileNotFound   = "FILE_NOT_FOUND"
+	codeInternalError  = "INTERNAL_SERVER_ERROR"
+	detailNotFound     = "the requested file was not found"
+	detailInternal     = "the server failed to serve the requested file"
+	codeServiceUnavail = "SERVICE_UNAVAILABLE"
+	detailUnconfigured = "file service not configured"
 )
 
 // FileHandler handles HTTP requests for serving single page application assets.
@@ -36,12 +38,10 @@ func isHandlerUnconfigured(h *FileHandler) bool {
 	return h.fileService == nil
 }
 
-// resolveFileNameParam extracts the fileName parameter from the request context.
+// resolveFileNameParam extracts the fileName parameter from the request context
+// and extracts the base file name.
 func resolveFileNameParam(c rest.Context) string {
-	if c == nil {
-		return ""
-	}
-	return c.Param("fileName")
+	return domain.ExtractFileName(extractRawParam(c))
 }
 
 // mapServiceError translates domain service errors into standardized RFC 9457 responses.
@@ -70,26 +70,30 @@ func buildAssetResponse(asset *domain.StaticAsset) rest.Response {
 // ServeRoot handles GET / by resolving and serving the index.html asset.
 func (h *FileHandler) ServeRoot(c rest.Context) rest.Response {
 	if isHandlerUnconfigured(h) {
-		return rest.InternalServerError("SERVICE_UNAVAILABLE", "file service not configured")
+		return rest.InternalServerError(codeServiceUnavail, detailUnconfigured)
 	}
 	ctx := extractRequestContext(c)
+	logRootRequest(ctx)
 	asset, err := h.fileService.GetIndexAsset(ctx)
 	if err != nil {
 		return mapServiceError(ctx, err)
 	}
-	return buildAssetResponse(asset)
+	return dispatchRootResponse(ctx, asset)
 }
 
-// ServeFile handles GET /:fileName by resolving the asset or falling back to index.html.
+// ServeFile handles GET /:p1 and GET /:p1/*fileName by extracting the base filename
+// and resolving the asset or falling back to index.html.
+// Framework probes (/health, /ready) take precedence at root depth, while probe subpaths
+// (e.g. /health/x) and trailing slashes (e.g. /media/, /app.js/) route here and fall back to index.html.
 func (h *FileHandler) ServeFile(c rest.Context) rest.Response {
 	if isHandlerUnconfigured(h) {
-		return rest.InternalServerError("SERVICE_UNAVAILABLE", "file service not configured")
+		return rest.InternalServerError(codeServiceUnavail, detailUnconfigured)
 	}
-	fileName := resolveFileNameParam(c)
-	ctx := extractRequestContext(c)
-	asset, err := h.fileService.GetAsset(ctx, fileName)
+	raw, name, ctx := resolveFileParams(c)
+	logFileRequest(ctx, raw, name)
+	asset, err := h.fileService.GetAsset(ctx, name)
 	if err != nil {
 		return mapServiceError(ctx, err)
 	}
-	return buildAssetResponse(asset)
+	return dispatchAssetResponse(ctx, name, asset)
 }

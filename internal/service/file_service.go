@@ -40,7 +40,9 @@ func NewFileStorageService(
 // If the requested file is not found in MongoDB metadata, it falls back to index.html.
 func (s *FileStorageService) GetAsset(ctx context.Context, fileName string) (*domain.StaticAsset, error) {
 	cleanName := domain.CleanFileName(fileName)
+	logEvaluateTarget(ctx, fileName, cleanName)
 	if isIndexTarget(cleanName, s.indexFile) {
+		logTargetIsIndex(ctx, fileName, s.indexFile)
 		return s.GetIndexAsset(ctx)
 	}
 	return s.resolveAsset(ctx, cleanName)
@@ -48,9 +50,11 @@ func (s *FileStorageService) GetAsset(ctx context.Context, fileName string) (*do
 
 // GetIndexAsset resolves and retrieves the SPA entrypoint index.html asset.
 func (s *FileStorageService) GetIndexAsset(ctx context.Context) (*domain.StaticAsset, error) {
+	logQueryMetadata(ctx, s.indexFile)
 	doc, err := s.repo.FindFile(ctx, s.indexFile)
 	if err != nil {
 		return nil, fmt.Errorf("lookup index file %q failed: %w", s.indexFile, err)
 	}
+	logMetadataFound(ctx, s.indexFile, doc.Location)
 	return s.fetchObject(ctx, doc.Location)
 }

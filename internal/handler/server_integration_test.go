@@ -58,15 +58,6 @@ func TestServerServesSingleSegmentFile(t *testing.T) {
 	rec.spyBody.waitClosed(t)
 }
 
-func TestServerNestedPathDoesNotHitAssetHandler(t *testing.T) {
-	rec := &recordingService{names: make(chan string, nameBuffer)}
-	base := startServer(t, rec.service())
-
-	resp, _ := fetch(t, base+"/assets/chunks/app.js")
-	assertEqual(t, http.StatusNotFound, resp.StatusCode)
-	assertEqual(t, 0, len(rec.names))
-}
-
 func TestServerServesFileWithoutOptionalMetadata(t *testing.T) {
 	rec := &recordingService{names: make(chan string, 1)}
 	svc := &mockFileService{
