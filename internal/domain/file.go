@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nawaphonOHM/whatever/v3/pkg/mongodb"
 	"github.com/nawaphonOHM/whatever/v3/pkg/storage"
 )
 
@@ -62,10 +63,9 @@ func sanitizeBase(base string) string {
 //
 // The fileName field is the primary lookup key and must be stored without leading slashes.
 type SPADocument struct {
-	ID            any    `bson:"_id,omitempty"`
-	HashValueFile string `bson:"hashValueFile"`
-	Location      string `bson:"location"`
-	FileName      string `bson:"fileName"`
+	Location string           `bson:"location"`
+	FileName string           `bson:"fileName"`
+	ID       mongodb.ObjectID `bson:"_id,omitempty"`
 }
 
 // StaticAsset holds the streamed object content and metadata from storage.

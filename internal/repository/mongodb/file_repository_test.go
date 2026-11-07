@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/nawaphonOHM/resume-web-server-golang/internal/domain"
+	mongotypes "github.com/nawaphonOHM/whatever/v3/pkg/mongodb"
 	"github.com/nawaphonOHM/whatever/v3/pkg/testing/mongodb"
 )
 
@@ -30,24 +31,6 @@ func TestNewMongoFileRepository(t *testing.T) {
 	if repo == nil {
 		t.Fatal("expected non-nil repository")
 	}
-}
-
-func TestCleanFileName(t *testing.T) {
-	assertEqual(t, testIndexFileName, CleanFileName(testIndexFileName))
-	assertEqual(t, testIndexFileName, CleanFileName("/"+testIndexFileName))
-	assertEqual(t, "app.js", CleanFileName("///app.js"))
-	assertEqual(t, "style.css", CleanFileName("  style.css  "))
-	assertEqual(t, "", CleanFileName(""))
-	assertEqual(t, "", CleanFileName("///"))
-}
-
-func TestBuildFilter(t *testing.T) {
-	filter := BuildFilter("/assets/main.js")
-	expected := mongodb.D{{Key: "fileName", Value: "assets/main.js"}}
-
-	assertEqual(t, len(expected), len(filter))
-	assertEqual(t, expected[0].Key, filter[0].Key)
-	assertEqual(t, expected[0].Value, filter[0].Value)
 }
 
 func TestNilCollection(t *testing.T) {
@@ -82,22 +65,12 @@ func TestMapFindErrorOther(t *testing.T) {
 
 func TestSPADocumentBSON(t *testing.T) {
 	doc := domain.SPADocument{
-		HashValueFile: "abc123hash",
-		Location:      "gs://my-bucket/index.html",
-		FileName:      testIndexFileName,
+		Location: "gs://my-bucket/index.html",
+		FileName: testIndexFileName,
+		ID:       mongotypes.NewObjectID(),
 	}
-
-	data, err := mongodb.Marshal(doc)
-	if err != nil {
-		t.Fatalf("failed to marshal SPADocument: %v", err)
-	}
-
-	var decoded domain.SPADocument
-	if unmarshalErr := mongodb.Unmarshal(data, &decoded); unmarshalErr != nil {
-		t.Fatalf("failed to unmarshal SPADocument: %v", unmarshalErr)
-	}
-
-	assertEqual(t, doc.HashValueFile, decoded.HashValueFile)
-	assertEqual(t, doc.Location, decoded.Location)
-	assertEqual(t, doc.FileName, decoded.FileName)
+	data := marshalSPADocument(t, doc)
+	assertSPADocumentRoundTrip(t, doc, data)
+	assertSPADocumentBSONFields(t, doc, data)
+	assertZeroIDSPADocumentOmitted(t, doc)
 }
